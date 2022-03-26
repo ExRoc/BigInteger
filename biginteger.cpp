@@ -49,7 +49,8 @@ const BigInteger& BigInteger::operator=(long long n) {
     if(n >= 0) {
         sign = true;
     } else if(n == LONG_LONG_MIN) {
-        *this = "-9223372036854775808";
+        *this = "9223372036854775808";
+        this->sign = false;
         return *this;
     } else if(n < 0) {
         sign = false;

@@ -1,14 +1,11 @@
-#include <iostream>
 #include <fstream>
-#include <ctime>
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 #include <windows.h>
-#include <climits>
 #include "biginteger.h"
 using namespace std;
 
-typedef int Type;
+typedef long long Type;
 const int TESTS = 80000;
 const char typefile[] = "type.txt";
 const char bigfile[] = "big.txt";
@@ -132,7 +129,7 @@ void Absolute() {
     cnt = 0;
     start = clock();
     while(cnt != TESTS) {
-        if(type[cnt] == LONG_LONG_MIN) {
+        if(type[cnt] == BigInteger::LONG_LONG_MIN) {
             fout << "9223372036854775808" << endl;
         } else if(type[cnt] == INT_MIN) {
             fout << "2147483648" << endl;

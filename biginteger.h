@@ -5,8 +5,6 @@
 #include <iostream>
 #include <cstring>
 #include <iomanip>
-#include <string>
-#include <algorithm>
 using namespace std;
 
 class BigInteger {
@@ -21,6 +19,8 @@ private:
     void setLength();
 
 public:
+    static const long long LONG_LONG_MIN = 1LL << 63;
+
     BigInteger(int n = 0);
     BigInteger(long long n);
     BigInteger(const char *n);
