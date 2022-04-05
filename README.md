@@ -2,7 +2,7 @@
 
 ## 概要
 
-本仓库提供可复用 C++ `BigInteger` 类的声明与实现，本人希望能提供“像使用基本数据类型一样方便”的高精度整数类，该类具有以下特点：
+本仓库提供可复用 C++ `BigInteger` 类的声明与实现，希望能提供“像使用基本数据类型一样方便”的高精度整数类，该类具有以下特点：
 
 ### 优点
 
@@ -32,661 +32,7 @@
 |   赋值运算符   | =, +=, -=, *=, /=, %=                                        |
 |    位运算符    | >> (右移运算符，与输入流关联), << (左移运算符，与输出流关联) |
 
-使用方式见[附录 2: 重载运算符](#overwrite_operator)。
-
-## <a id="supported_other_function">支持的其他函数</a>
-
-在使用 `vector<int>` 作为底层数据结构存储的情况下，`BigInteger` 类针对某些特殊场景提供了更高效的成员函数供外部调用：
-
-|            函数声明            | 函数功能                                   |
-| :----------------------------: | ------------------------------------------ |
-|     `size_t size() const`      | 返回 `BigInteger` 的十进制位数             |
-| `BigInteger e(size_t n) const` | 返回 `BigInteger` 对象 $\times10^n$ 后的值 |
-|    `BigInteger abs() const`    | 返回 `BigInteger` 对象的绝对值             |
-
-使用方式见[附录 3: 其他函数](#other_function)，更多函数请使用者在已有代码基础上自行编写。
-
-## <a id="performance">运行性能</a>
-
-为了评测 `BigInteger` 类的性能，这里将 `BigIntger` 类与基本数据类型 `int` / `long long` 的计算速度进行对比，随机生成 80000 组数据，计算得到 `BigInteger` 类与基本数据类型进行 80000 次相同计算的耗时比：（$\frac{t_{BigInteger}}{t_{int~or~long~long}}$），部分基础能力评测结果如下表：
-
-|                   运算                    |   int   | long long |
-| :---------------------------------------: | :-----: | :-------: |
-| `ostream& operator<<(ostream&, const T&)` | 1.0628  |  1.05479  |
-|    `istream& operator>>(istream&, T&)`    | 1.63793 |  1.47059  |
-|                  `abs()`                  | 1.2542  |  1.28082  |
-|                比较运算符                 | 1.36558 |  1.33571  |
-|     `T operator+(const T&, const T&)`     | 2.68966 |  2.55204  |
-|     `T operator-(const T&, const T&)`     | 2.48848 |  2.59545  |
-|     `T operator*(const T&, const T&)`     | 1.7549  |  1.89862  |
-|     `T operator/(const T&, const T&)`     | 6.4381  |  15.0192  |
-|     `T operator%(const T&, const T&)`     | 8.70732 |  15.9469  |
-
-检验结果准确性与运行时间代码见[附录 4: 性能测试](#performance_testing)。默认将 `BigInteger` 类的计算时间与 `int` 类型数据计算时间比较，若要与 `long long` 类型计算时间进行比较，可将程序中
-
-```cpp
-typedef int Type
-```
-　　改为
-
-```cpp
-typedef long long Type
-```
-
-## <a id="others">其他说明</a>
-
-此为第二版本，修复初版以下问题：
-
-1. 缺少 `const BigInteger& operator=(int n)` 赋值函数导致的程序二义性问题
-2. 对于常量 `LONG_LONG_MIN` abs 为负值的修正
-3. 添加输入与构造函数的 `const char*` 格式检查，格式不符时，当前输入失效，不改变变量值，构造函数则默认构造 `BigInteger(0)`
-
-该类的局限性：
-
-1. 可以与 `bool` / `int` / `long long` 数据类型做隐式类型转换（只能从低精度往高精度），但不能与浮点数做隐式类型转换
-2. 构造函数不支持 `long int` 类型（也无计划支持）
-3. 对除以 0 错误不做处理
-
-## 附录
-
-### <a id="source_code">附录 1: 源代码</a>
-
-#### biginteger.h 头文件：
-
-```cpp
-#ifndef BIGINTEGER_H_
-#define BIGINTEGER_H_
-
-#include <vector>
-#include <iostream>
-#include <cstring>
-#include <iomanip>
-using namespace std;
-
-class BigInteger {
-private:
-    static const int BASE = 100000000;
-    static const int WIDTH = 8;
-    bool sign;
-    size_t length;
-    vector<int> num;
-
-    void cutLeadingZero();
-    void setLength();
-
-public:
-    static const long long LONG_LONG_MIN = 1LL << 63;
-
-    BigInteger(int n = 0);
-    BigInteger(long long n);
-    BigInteger(const char *n);
-    BigInteger(const BigInteger &n);
-
-    const BigInteger& operator=(int n);
-    const BigInteger& operator=(long long n);
-    const BigInteger& operator=(const char *n);
-    const BigInteger& operator=(const BigInteger &n);
-
-    size_t size() const;
-    BigInteger e(size_t n) const;
-    BigInteger abs() const;
-
-    const BigInteger& operator+() const;
-    friend BigInteger operator+(const BigInteger &a, const BigInteger &b);
-    const BigInteger& operator+=(const BigInteger &n);
-    const BigInteger& operator++();
-    BigInteger operator++(int);
-
-    BigInteger operator-() const;
-    friend BigInteger operator-(const BigInteger &a, const BigInteger &b);
-    const BigInteger& operator-=(const BigInteger &n);
-    const BigInteger& operator--();
-    BigInteger operator--(int);
-
-    friend BigInteger operator*(const BigInteger &a, const BigInteger &b);
-    const BigInteger& operator*=(const BigInteger &n);
-
-    friend BigInteger operator/(const BigInteger &a, const BigInteger &b);
-    const BigInteger& operator/=(const BigInteger &n);
-
-    friend BigInteger operator%(const BigInteger &a, const BigInteger &b);
-    const BigInteger& operator%=(const BigInteger &n);
-
-    friend bool operator<(const BigInteger &a, const BigInteger &b);
-    friend bool operator<=(const BigInteger &a, const BigInteger &b);
-    friend bool operator>(const BigInteger &a, const BigInteger &b);
-    friend bool operator>=(const BigInteger &a, const BigInteger &b);
-    friend bool operator==(const BigInteger &a, const BigInteger &b);
-    friend bool operator!=(const BigInteger &a, const BigInteger &b);
-
-    friend bool operator||(const BigInteger &a, const BigInteger &b);
-    friend bool operator&&(const BigInteger &a, const BigInteger &b);
-    bool operator!();
-
-    friend ostream& operator<<(ostream &out, const BigInteger &n);
-    friend istream& operator>>(istream &in, BigInteger &n);
-};
-
-#endif // BIGINTEGER_H_
-```
-
-#### biginteger.cpp 文件：
-
-```cpp
-#include "biginteger.h"
-
-void BigInteger::cutLeadingZero() {
-    while(num.back() == 0 && num.size() != 1) {
-        num.pop_back();
-    }
-}
-
-void BigInteger::setLength() {
-    cutLeadingZero();
-    int tmp = num.back();
-    if(tmp == 0) {
-        length = 1;
-    } else {
-        length = (num.size() - 1) * 8;
-        while(tmp > 0) {
-            ++length;
-            tmp /= 10;
-        }
-    }
-}
-
-BigInteger::BigInteger(int n) {
-    *this = n;
-}
-
-BigInteger::BigInteger(long long n) {
-    *this = n;
-}
-
-BigInteger::BigInteger(const char *n) {
-    *this = n;
-}
-
-BigInteger::BigInteger(const BigInteger &n) {
-    *this = n;
-}
-
-const BigInteger& BigInteger::operator=(int n) {
-    *this = (long long)n;
-    return *this;
-}
-
-const BigInteger& BigInteger::operator=(long long n) {
-    num.clear();
-    if(n == 0) {
-        num.push_back(0);
-    }
-    if(n >= 0) {
-        sign = true;
-    } else if(n == LONG_LONG_MIN) {
-        *this = "-9223372036854775808";
-        return *this;
-    } else if(n < 0) {
-        sign = false;
-        n = -n;
-    }
-    while(n != 0) {
-        num.push_back(n % BASE);
-        n /= BASE;
-    }
-    setLength();
-    return *this;
-}
-
-const BigInteger& BigInteger::operator=(const char *n) {
-    int len = strlen(n);
-    int tmp = 0;
-    int ten = 1;
-    int stop = 0;
-    num.clear();
-    sign = (n[0] != '-');
-    if(!sign) {
-        stop = 1;
-    }
-    for(int i = len; i > stop; --i) {
-        tmp += (n[i - 1] - '0') * ten;
-        ten *= 10;
-        if((len - i) % 8 == 7) {
-            num.push_back(tmp);
-            tmp = 0;
-            ten = 1;
-        }
-    }
-    if((len - stop) % WIDTH != 0) {
-        num.push_back(tmp);
-    }
-    setLength();
-    return *this;
-}
-
-const BigInteger& BigInteger::operator=(const BigInteger &n) {
-    num = n.num;
-    sign = n.sign;
-    length = n.length;
-    return *this;
-}
-
-size_t BigInteger::size() const {
-    return length;
-}
-
-BigInteger BigInteger::e(size_t n) const {
-    int tmp = n % 8;
-    BigInteger ans;
-    ans.length = n + 1;
-    n /= 8;
-    while(ans.num.size() <= n) {
-        ans.num.push_back(0);
-    }
-    ans.num[n] = 1;
-    while(tmp--) {
-        ans.num[n] *= 10;
-    }
-    return ans * (*this);
-}
-
-BigInteger BigInteger::abs() const {
-    BigInteger ans(*this);
-    ans.sign = true;
-    return ans;
-}
-
-const BigInteger& BigInteger::operator+() const {
-    return *this;
-}
-
-BigInteger operator+(const BigInteger &a, const BigInteger &b) {
-    if(!b.sign) {
-        return a - (-b);
-    }
-    if(!a.sign) {
-        return b - (-a);
-    }
-    BigInteger ans;
-    int carry = 0;
-    int aa, bb;
-    size_t lena = a.num.size();
-    size_t lenb = b.num.size();
-    size_t len = max(lena, lenb);
-    ans.num.clear();
-    for(size_t i = 0; i < len; ++i) {
-        if(lena <= i) {
-            aa = 0;
-        } else {
-            aa = a.num[i];
-        }
-        if(lenb <= i) {
-            bb = 0;
-        } else {
-            bb = b.num[i];
-        }
-        ans.num.push_back((aa + bb + carry) % BigInteger::BASE);
-        carry = (aa + bb + carry) / BigInteger::BASE;
-    }
-    if(carry > 0) {
-        ans.num.push_back(carry);
-    }
-    ans.setLength();
-    return ans;
-}
-
-const BigInteger& BigInteger::operator+=(const BigInteger &n) {
-    *this = *this + n;
-    return *this;
-}
-
-const BigInteger& BigInteger::operator++() {
-    *this = *this + 1;
-    return *this;
-}
-
-BigInteger BigInteger::operator++(int) {
-    BigInteger ans(*this);
-    *this = *this + 1;
-    return ans;
-}
-
-BigInteger BigInteger::operator-() const {
-    BigInteger ans(*this);
-    if(ans != 0) {
-        ans.sign = !ans.sign;
-    }
-    return ans;
-}
-
-BigInteger operator-(const BigInteger &a, const BigInteger &b) {
-    if(!b.sign) {
-        return a + (-b);
-    }
-    if(!a.sign) {
-        return -((-a) + b);
-    }
-    if(a < b) {
-        return -(b - a);
-    }
-    BigInteger ans;
-    int carry = 0;
-    int aa, bb;
-    size_t lena = a.num.size();
-    size_t lenb = b.num.size();
-    size_t len = max(lena, lenb);
-    ans.num.clear();
-    for(size_t i = 0; i < len; ++i) {
-        aa = a.num[i];
-        if(i >= lenb) {
-            bb = 0;
-        } else {
-            bb = b.num[i];
-        }
-        ans.num.push_back((aa - bb - carry + BigInteger::BASE) % BigInteger::BASE);
-        if(aa < bb + carry) {
-            carry = 1;
-        } else {
-            carry = 0;
-        }
-    }
-    ans.setLength();
-    return ans;
-}
-
-const BigInteger& BigInteger::operator-=(const BigInteger &n) {
-    *this = *this - n;
-    return *this;
-}
-
-const BigInteger& BigInteger::operator--() {
-    *this = *this - 1;
-    return *this;
-}
-
-BigInteger BigInteger::operator--(int) {
-    BigInteger ans(*this);
-    *this = *this - 1;
-    return ans;
-}
-
-BigInteger operator*(const BigInteger &a, const BigInteger&b) {
-    size_t lena = a.num.size();
-    size_t lenb = b.num.size();
-    vector<long long> ansLL;
-    for(size_t i = 0; i < lena; ++i) {
-        for(size_t j = 0; j < lenb; ++j) {
-            if(i + j >= ansLL.size()) {
-                ansLL.push_back((long long)a.num[i] * (long long)b.num[j]);
-            } else {
-                ansLL[i + j] += (long long)a.num[i] * (long long)b.num[j];
-            }
-        }
-    }
-    while(ansLL.back() == 0 && ansLL.size() != 1) {
-        ansLL.pop_back();
-    }
-    size_t len = ansLL.size();
-    long long carry = 0;
-    long long tmp;
-    BigInteger ans;
-    ans.sign = (ansLL.size() == 1 && ansLL[0] == 0) || (a.sign == b.sign);
-    ans.num.clear();
-    for(size_t i = 0; i < len; ++i) {
-        tmp = ansLL[i];
-        ans.num.push_back((tmp + carry) % BigInteger::BASE);
-        carry = (tmp + carry) / BigInteger::BASE;
-    }
-    if(carry > 0) {
-        ans.num.push_back(carry);
-    }
-    ans.setLength();
-    return ans;
-}
-
-const BigInteger& BigInteger::operator*=(const BigInteger &n) {
-    *this = *this * n;
-    return *this;
-}
-
-BigInteger operator/(const BigInteger &a, const BigInteger &b) {
-    BigInteger aa(a.abs());
-    BigInteger bb(b.abs());
-    if(aa < bb) {
-        return 0;
-    }
-    char *str = new char[aa.size() + 1];
-    memset(str, 0, sizeof(char) * (aa.size() + 1));
-    BigInteger tmp;
-    int lena = aa.length;
-    int lenb = bb.length;
-    for(int i = 0; i <= lena - lenb; ++i) {
-        tmp = bb.e(lena - lenb - i);
-        while(aa >= tmp) {
-            ++str[i];
-            aa = aa - tmp;
-        }
-        str[i] += '0';
-    }
-
-    BigInteger ans(str);
-    delete[]str;
-    ans.sign = (ans == 0 || a.sign == b.sign);
-    return ans;
-}
-
-const BigInteger& BigInteger::operator/=(const BigInteger &n) {
-    *this = *this / n;
-    return *this;
-}
-
-BigInteger operator%(const BigInteger &a, const BigInteger &b) {
-    return a - a / b * b;
-}
-
-const BigInteger& BigInteger::operator%=(const BigInteger &n) {
-    *this = *this - *this / n * n;
-    return *this;
-}
-
-bool operator<(const BigInteger &a, const BigInteger &b) {
-    if(a.sign && !b.sign) {
-        return false;
-    } else if(!a.sign && b.sign) {
-        return true;
-    } else if(a.sign && b.sign) {
-        if(a.length < b.length) {
-            return true;
-        } else if(a.length > b.length) {
-            return false;
-        } else {
-            size_t lena = a.num.size();
-            for(int i = lena - 1; i >= 0; --i) {
-                if(a.num[i] < b.num[i]) {
-                    return true;
-                } else if(a.num[i] > b.num[i]) {
-                    return false;
-                }
-            }
-            return false;
-        }
-    } else {
-        return -b < -a;
-    }
-}
-
-bool operator<=(const BigInteger &a, const BigInteger &b) {
-    return !(b < a);
-}
-
-bool operator>(const BigInteger &a, const BigInteger &b) {
-    return b < a;
-}
-
-bool operator>=(const BigInteger &a, const BigInteger &b) {
-    return !(a < b);
-}
-
-bool operator==(const BigInteger &a, const BigInteger &b) {
-    return !(a < b) && !(b < a);
-}
-
-bool operator!=(const BigInteger &a, const BigInteger &b) {
-    return (a < b) || (b < a);
-}
-
-bool operator||(const BigInteger &a, const BigInteger &b) {
-    return a != 0 || b != 0;
-}
-
-bool operator&&(const BigInteger &a, const BigInteger &b) {
-    return a != 0 && b != 0;
-}
-
-bool BigInteger::operator!() {
-    return *this == 0;
-}
-
-ostream& operator<<(ostream &out, const BigInteger &n) {
-    size_t len = n.num.size();
-    if(!n.sign) {
-        out << '-';
-    }
-    out << n.num.back();
-    for(int i = len - 2; i >= 0; --i) {
-        out << setw(BigInteger::WIDTH) << setfill('0') << n.num[i];
-    }
-    return out;
-}
-
-istream& operator>>(istream &in, BigInteger &n) {
-    string str;
-    in >> str;
-    size_t len = str.length();
-    size_t i, start = 0;
-    if(str[0] == '-') {
-        start = 1;
-    }
-    if(str[start] == '\0') {
-        return in;
-    }
-    for(i = start; i < len; ++i) {
-        if(str[i] < '0' || str[i] > '9') {
-            return in;
-        }
-    }
-    n = str.c_str();
-    return in;
-}
-```
-
-[返回正文 ↑](#summary)
-
-### <a id="overwrite_operator">附录 2: 重载运算符</a>
-
-#### 使用代码示例
-
-```cpp
-#include <iostream>
-#include "biginteger.h"
-using namespace std;
-
-int main() {
-    BigInteger a, b;
-
-    cout << "========= Input Values =========" << endl;
-    cin >> a >> b;
-    cout << endl;
-
-    cout << "========= Values =========" << endl;
-    cout << "a = " << a << endl;
-    cout << "b = " << b << endl;
-    cout << endl;
-
-    cout << "========= Binary Operator =========" << endl;
-    cout << "a + b = " << a + b << endl;
-    cout << "a - b = " << a - b << endl;
-    cout << "a * b = " << a * b << endl;
-    cout << "a / b = " << a / b << endl;
-    cout << "a % b = " << a % b << endl;
-    cout << endl;
-
-    cout << "========= Relational Operator =========" << endl;
-    cout << boolalpha;
-    cout << "a == b is " << (a == b) << endl;
-    cout << "a != b is " << (a != b) << endl;
-    cout << "a < b is " << (a < b) << endl;
-    cout << "a > b is " << (a > b) << endl;
-    cout << "a <= b is " << (a <= b) << endl;
-    cout << "a >= b is " << (a >= b) << endl;
-    cout << endl;
-
-    cout << "========= Logical Operator =========" << endl;
-    cout << "a || b is " << (a || b) << endl;
-    cout << "a && b is " << (a && b) << endl;
-    cout << "!a is " << !a << endl;
-    cout << endl;
-
-    cout << "========= Unary Operator =========" << endl;
-    cout << "+a = " << +a << endl;
-    cout << "-a = " << -a << endl;
-    cout << endl;
-
-    cout << "========= Increment / Decrement Operator =========" << endl;
-    cout << "a++ is " << a++ << endl;
-    cout << "a = " << a << endl;
-    cout << endl;
-
-    cout << "++a is " << ++a << endl;
-    cout << "a = " << a << endl;
-    cout << endl;
-
-    cout << "--a is " << --a << endl;
-    cout << "a = " << a << endl;
-    cout << endl;
-
-    cout << "a-- is " << a-- << endl;
-    cout << "a = " << a << endl;
-    cout << endl;
-
-    cout << "========= Assignment Operator =========" << endl;
-    a += b;
-    cout << "after a += b" << endl;
-    cout << "a = " << a << endl;
-    cout << "b = " << b << endl;
-    cout << endl;
-
-    a -= b;
-    cout << "after a -= b" << endl;
-    cout << "a = " << a << endl;
-    cout << "b = " << b << endl;
-    cout << endl;
-
-    a *= b;
-    cout << "after a *= b" << endl;
-    cout << "a = " << a << endl;
-    cout << "b = " << b << endl;
-    cout << endl;
-
-    a /= b;
-    cout << "after a /= b" << endl;
-    cout << "a = " << a << endl;
-    cout << "b = " << b << endl;
-    cout << endl;
-
-    a %= b;
-    cout << "after a %= b" << endl;
-    cout << "a = " << a << endl;
-    cout << "b = " << b << endl;
-    cout << endl;
-
-    return 0;
-}
-```
-
-#### 执行测试
-
-假设输入 a b 值分别为 123456789012345678901234567890 与 987654321098765432109876543210，则控制台展示如下：
+使用方式见 [sample1.cpp](https://github.com/ExRoc/BigInteger/blob/main/sample1.cpp)，假设输入 a b 值分别为 123456789012345678901234567890 与 987654321098765432109876543210，则控制台展示如下：
 
 ```bash
 ========= Input Values =========
@@ -760,32 +106,19 @@ Process returned 0 (0x0)   execution time : 24.289 s
 Press any key to continue.
 ```
 
-[返回正文 ↑](#overwrited_operator)
+## <a id="supported_other_function">支持的其他函数</a>
 
-### <a id="other_function">附录 3: 其他函数</a>
+在使用 `vector<int>` 作为底层数据结构存储的情况下，`BigInteger` 类针对某些特殊场景提供了更高效的成员函数供外部调用：
 
-#### 使用代码示例
+|            函数声明            | 函数功能                                   |
+| :----------------------------: | ------------------------------------------ |
+|     `size_t size() const`      | 返回 `BigInteger` 的十进制位数             |
+| `BigInteger e(size_t n) const` | 返回 `BigInteger` 对象 $\times10^n$ 后的值 |
+|    `BigInteger abs() const`    | 返回 `BigInteger` 对象的绝对值             |
 
-```cpp
-#include <iostream>
-#include "biginteger.h"
-using namespace std;
+使用方式见[sample2.cpp](https://github.com/ExRoc/BigInteger/blob/main/sample2.cpp)，控制台输出如下：
 
-int main() {
-    BigInteger a = "-123456789012345678901234567890";
-    cout << "a = " << a << endl;
-    cout << "a.size() = " << a.size() << endl;
-    cout << "a.e(5) = " << a.e(5) << endl;
-    cout << "a.abs() = " << a.abs() << endl;
-    cout << "a.abs().e(2) = " << a.abs().e(2) << endl;
-
-    return 0;
-}
-```
-
-#### 执行测试
-
-```bash
+``` bash
 a = -123456789012345678901234567890
 a.size() = 30
 a.e(5) = -12345678901234567890123456789000000
@@ -796,7 +129,50 @@ Process returned 0 (0x0)   execution time : 0.043 s
 Press any key to continue.
 ```
 
-[返回正文 ↑](#supported_other_function)
+更多函数请使用者在已有代码基础上自行编写。
+
+## 运行性能
+
+为了评测 `BigInteger` 类的性能，这里将 `BigIntger` 类与基本数据类型 `int` / `long long` 的计算速度进行对比，随机生成 80000 组数据，计算得到 `BigInteger` 类与基本数据类型进行 80000 次相同计算的耗时比：（[](https://latex.codecogs.com/svg.latex?\frac{t_{BigInteger}}{t_{int~or~long~long}})），部分基础能力评测结果如下表：
+
+|                   运算                    |   int   | long long |
+| :---------------------------------------: | :-----: | :-------: |
+| `ostream& operator<<(ostream&, const T&)` | 1.0628  |  1.05479  |
+|    `istream& operator>>(istream&, T&)`    | 1.63793 |  1.47059  |
+|                  `abs()`                  | 1.2542  |  1.28082  |
+|                比较运算符                 | 1.36558 |  1.33571  |
+|     `T operator+(const T&, const T&)`     | 2.68966 |  2.55204  |
+|     `T operator-(const T&, const T&)`     | 2.48848 |  2.59545  |
+|     `T operator*(const T&, const T&)`     | 1.7549  |  1.89862  |
+|     `T operator/(const T&, const T&)`     | 6.4381  |  15.0192  |
+|     `T operator%(const T&, const T&)`     | 8.70732 |  15.9469  |
+
+检验结果准确性与运行时间代码见[附录 4: 性能测试](#performance_testing)。默认将 `BigInteger` 类的计算时间与 `int` 类型数据计算时间比较，若要与 `long long` 类型计算时间进行比较，可将程序中
+
+```cpp
+typedef int Type
+```
+　　改为
+
+```cpp
+typedef long long Type
+```
+
+## <a id="others">其他说明</a>
+
+此为第二版本，修复初版以下问题：
+
+1. 缺少 `const BigInteger& operator=(int n)` 赋值函数导致的程序二义性问题
+2. 对于常量 `LONG_LONG_MIN` abs 为负值的修正
+3. 添加输入与构造函数的 `const char*` 格式检查，格式不符时，当前输入失效，不改变变量值，构造函数则默认构造 `BigInteger(0)`
+
+该类的局限性：
+
+1. 可以与 `bool` / `int` / `long long` 数据类型做隐式类型转换（只能从低精度往高精度），但不能与浮点数做隐式类型转换
+2. 构造函数不支持 `long int` 类型（也无计划支持）
+3. 对除以 0 错误不做处理
+
+## 附录
 
 ### <a id="performance_testing">附录 4: 性能测试</a>
 
