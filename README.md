@@ -133,7 +133,7 @@ Press any key to continue.
 
 ## 运行性能
 
-为了评测 `BigInteger` 类的性能，这里将 `BigIntger` 类与基本数据类型 `int` / `long long` 的计算速度进行对比，随机生成 80000 组数据，计算得到 `BigInteger` 类与基本数据类型进行 80000 次相同计算的耗时比：（![](https://latex.codecogs.com/svg.latex?\frac{t_{BigInteger}}{t_{int~or~long~long}})），部分基础能力评测结果如下表：
+为了评测 `BigInteger` 类的性能，这里将 `BigIntger` 类与基本数据类型 `int` / `long long` 的计算速度进行对比，随机生成 80000 组数据，计算得到 `BigInteger` 类与基本数据类型进行 80000 次相同计算的耗时比：![](https://latex.codecogs.com/svg.latex?\left(\frac{t_{BigInteger}}{t_{int~or~long~long}}\right))，部分基础能力评测结果如下表：
 
 |                   运算                    |   int   | long long |
 | :---------------------------------------: | :-----: | :-------: |
